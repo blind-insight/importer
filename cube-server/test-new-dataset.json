@@ -1,0 +1,15 @@
+{
+  "organization": "your-org-slug",
+  "createNewDataset": true,
+  "datasetName": "Dataset to import to",
+  "datasetSlug": "dataset-to-import-to-slug",
+  "schemaName": "Schema Name",
+  "schemaSlug": "schema-name-slug",
+  "fields": [
+    "name:type",
+    "name:type"
+  ],
+  "projectId": "bqprojID",
+  "datasetId": "Dataset to import from",
+  "tableId": "Table to import from"
+} 

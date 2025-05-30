@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery to Blind Insight | Data Import Tool</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: rgba(9, 9, 10, 1);
+            background: rgba(253, 252, 252, 1);
+        }
+
+        .app {
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(63, 38, 143, 1) 0%, rgba(47, 24, 123, 1) 100%);
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header .logo {
+            max-width: 300px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+        }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 2rem;
+        }
+
+        .converter-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(232, 232, 232, 1);
+            color: rgba(9, 9, 10, 1);
+        }
+
+        .converter-form h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            color: rgba(47, 24, 123, 1);
+            font-weight: 600;
+        }
+
+        .converter-form form {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 1rem;
+            color: rgba(57, 56, 57, 1);
+        }
+
+        .form-group input {
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(232, 232, 232, 1);
+            border-radius: 8px;
+            background: white;
+            color: rgba(9, 9, 10, 1);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(104, 104, 104, 1);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(63, 38, 143, 1);
+            box-shadow: 0 0 0 3px rgba(63, 38, 143, 0.1);
+        }
+
+        .form-group input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(240, 240, 240, 1);
+        }
+
+        .form-group select {
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(232, 232, 232, 1);
+            border-radius: 8px;
+            background: white;
+            color: rgba(9, 9, 10, 1);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: rgba(63, 38, 143, 1);
+            box-shadow: 0 0 0 3px rgba(63, 38, 143, 0.1);
+        }
+
+        .form-group select option {
+            background: white;
+            color: rgba(9, 9, 10, 1);
+        }
+
+        .form-group input[type="file"] {
+            padding: 0.75rem;
+            border: 2px dashed rgba(232, 232, 232, 1);
+            border-radius: 8px;
+            background: rgba(253, 252, 252, 1);
+            color: rgba(9, 9, 10, 1);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input[type="file"]:focus,
+        .form-group input[type="file"]:hover {
+            border-color: rgba(63, 38, 143, 1);
+            background: rgba(240, 240, 240, 1);
+        }
+
+        .file-info {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: rgba(104, 104, 104, 1);
+            font-style: italic;
+        }
+
+        button {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(45deg, rgba(63, 38, 143, 1), rgba(47, 24, 123, 1));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(63, 38, 143, 0.4);
+            background: linear-gradient(45deg, rgba(47, 24, 123, 1), rgba(85, 36, 123, 1));
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(232, 232, 232, 1);
+            color: rgba(9, 9, 10, 1);
+        }
+
+        .results h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            color: rgba(47, 24, 123, 1);
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid rgba(232, 232, 232, 1);
+            margin-bottom: 1.5rem;
+        }
+
+        .tabs button {
+            background: none;
+            color: rgba(57, 56, 57, 1);
+            border: none;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .tabs button:hover {
+            color: rgba(63, 38, 143, 1);
+            background: rgba(248, 248, 248, 1);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tabs button.active {
+            color: rgba(47, 24, 123, 1);
+            border-bottom-color: rgba(63, 38, 143, 1);
+            background: rgba(248, 248, 248, 1);
+            font-weight: 600;
+        }
+
+        .schema-section {
+            text-align: left;
+            color: rgba(9, 9, 10, 1);
+        }
+
+        .schema-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .schema-header h3 {
+            font-size: 1.4rem;
+            color: rgba(47, 24, 123, 1);
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .actions button {
+            padding: 0.5rem 1rem;
+            background: rgba(248, 248, 248, 1);
+            border: 1px solid rgba(232, 232, 232, 1);
+            color: rgba(47, 24, 123, 1);
+            font-size: 0.9rem;
+            margin: 0;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .actions button:hover {
+            background: rgba(240, 240, 240, 1);
+            border-color: rgba(63, 38, 143, 1);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .schema-content {
+            background: rgba(9, 9, 10, 1);
+            border: 1px solid rgba(232, 232, 232, 1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: rgba(0, 255, 0, 1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .field-hint {
+            font-size: 0.8rem;
+            color: rgba(104, 104, 104, 1);
+            background: rgba(248, 248, 248, 1);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .app {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .converter-form,
+            .results {
+                padding: 1.5rem;
+            }
+            
+            .schema-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+        }
+
+        /* Blind Integration Section */
+        .blind-integration-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .blind-integration-section h2 {
+            color: white;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .blind-integration-section p {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        /* Form labels specifically for the Blind Integration section (dark background) */
+        .blind-integration-section .form-group label {
+            display: block;
+            color: white;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Form labels for converter form (white background) */
+        .converter-form .form-group label {
+            display: block;
+            color: rgba(57, 56, 57, 1);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .blind-integration-section .form-group label input[type="checkbox"] {
+            margin-right: 0.5rem;
+            transform: scale(1.2);
+        }
+
+        .blind-integration-section .form-group small {
+            display: block;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Make sure converter form small text has proper contrast */
+        .converter-form .form-group small {
+            color: rgba(104, 104, 104, 1);
+        }
+
+        button[type="submit"] {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        button[type="submit"]:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button[type="submit"]:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .copy-button, .download-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .copy-button:hover, .download-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tab-content {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 1);
+            border-radius: 8px;
+            border: 1px solid rgba(232, 232, 232, 1);
+            color: rgba(9, 9, 10, 1);
+        }
+
+        .json-output {
+            background: rgba(9, 9, 10, 1);
+            color: rgba(0, 255, 0, 1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(232, 232, 232, 1);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(232, 232, 232, 1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        table th {
+            background: rgba(63, 38, 143, 1);
+            color: white;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(47, 24, 123, 1);
+        }
+
+        table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(232, 232, 232, 1);
+            color: rgba(9, 9, 10, 1);
+        }
+
+        table tr:nth-child(even) {
+            background: rgba(253, 252, 252, 1);
+        }
+
+        table tr:hover {
+            background: rgba(240, 240, 240, 1);
+        }
+
+        .error {
+            color: rgba(255, 107, 107, 1);
+            background: rgba(255, 245, 245, 1);
+            border: 1px solid rgba(255, 200, 200, 1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            color: rgba(63, 38, 143, 1);
+            text-align: center;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .blind-integration {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid rgba(232, 232, 232, 1);
+        }
+
+        .blind-integration h3 {
+            color: rgba(47, 24, 123, 1);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            color: rgba(57, 56, 57, 1);
+        }
+
+        .success {
+            color: rgba(5, 114, 55, 1);
+            background: rgba(240, 253, 244, 1);
+            border: 1px solid rgba(187, 247, 208, 1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .status-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: rgba(0, 128, 0, 0.1);
+            color: rgba(0, 100, 0, 1);
+            border: 1px solid rgba(0, 128, 0, 0.3);
+        }
+
+        .status-error {
+            background: rgba(255, 0, 0, 0.1);
+            color: rgba(200, 0, 0, 1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .status-info {
+            background: rgba(63, 38, 143, 0.1);
+            color: rgba(47, 24, 123, 1);
+            border: 1px solid rgba(63, 38, 143, 0.3);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Mock BigQuery schema for testing
+        const mockBigQuerySchema = {
+            fields: [
+                {
+                    name: 'id',
+                    type: 'INTEGER',
+                    mode: 'REQUIRED',
+                    description: 'Unique identifier'
+                },
+                {
+                    name: 'name',
+                    type: 'STRING',
+                    mode: 'NULLABLE',
+                    description: 'User name'
+                },
+                {
+                    name: 'email',
+                    type: 'STRING',
+                    mode: 'REQUIRED',
+                    description: 'User email address'
+                },
+                {
+                    name: 'created_at',
+                    type: 'TIMESTAMP',
+                    mode: 'REQUIRED',
+                    description: 'Record creation timestamp'
+                },
+                {
+                    name: 'tags',
+                    type: 'STRING',
+                    mode: 'REPEATED',
+                    description: 'User tags'
+                }
+            ]
+        };
+
+        function App() {
+            const [authMode, setAuthMode] = useState('bigquery');
+            const [projectId, setProjectId] = useState('bigquery-public-data');
+            const [serviceAccountKey, setServiceAccountKey] = useState(null);
+            const [datasetId, setDatasetId] = useState('samples');
+            const [tableId, setTableId] = useState('shakespeare');
+            const [jsonSchema, setJsonSchema] = useState(null);
+            const [bigQuerySchema, setBigQuerySchema] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [activeTab, setActiveTab] = useState('json');
+
+            // Blind Insight integration state
+            const [blindOrganization, setBlindOrganization] = useState('blind-insight-demo');
+            const [blindDatasetName, setBlindDatasetName] = useState('');
+            const [blindDatasetSlug, setBlindDatasetSlug] = useState('');
+            const [blindSchemaName, setBlindSchemaName] = useState('');
+            const [blindSchemaSlug, setBlindSchemaSlug] = useState('');
+            const [blindCreateDataset, setBlindCreateDataset] = useState(false);
+            const [blindLoading, setBlindLoading] = useState(false);
+            const [blindSuccess, setBlindSuccess] = useState(null);
+            const [blindError, setBlindError] = useState(null);
+
+            const convertFieldToJsonSchema = (field) => {
+                const property = {
+                    description: field.description || ''
+                };
+
+                switch (field.type) {
+                    case 'STRING':
+                        property.type = 'string';
+                        break;
+                    case 'INTEGER':
+                    case 'INT64':
+                        property.type = 'integer';
+                        break;
+                    case 'FLOAT':
+                    case 'FLOAT64':
+                    case 'NUMERIC':
+                    case 'BIGNUMERIC':
+                        property.type = 'number';
+                        break;
+                    case 'BOOLEAN':
+                    case 'BOOL':
+                        property.type = 'boolean';
+                        break;
+                    case 'TIMESTAMP':
+                    case 'DATETIME':
+                    case 'DATE':
+                    case 'TIME':
+                        property.type = 'string';
+                        property.format = field.type.toLowerCase();
+                        break;
+                    case 'RECORD':
+                        property.type = 'object';
+                        property.properties = {};
+                        if (field.fields) {
+                            field.fields.forEach(subField => {
+                                property.properties[subField.name] = convertFieldToJsonSchema(subField);
+                            });
+                        }
+                        break;
+                    default:
+                        property.type = 'string';
+                }
+
+                if (field.mode === 'REPEATED') {
+                    return {
+                        type: 'array',
+                        items: property,
+                        description: field.description || ''
+                    };
+                }
+
+                return property;
+            };
+
+            const convertToJsonSchema = (bgSchema, tableName) => {
+                const schema = {
+                    type: 'object',
+                    title: tableName,
+                    properties: {},
+                    required: []
+                };
+
+                bgSchema.fields.forEach(field => {
+                    const property = convertFieldToJsonSchema(field);
+                    schema.properties[field.name] = property;
+                    
+                    if (field.mode === 'REQUIRED') {
+                        schema.required.push(field.name);
+                    }
+                });
+
+                return schema;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                
+                if (!datasetId.trim() || !tableId.trim()) {
+                    alert('Please enter both dataset ID and table ID');
+                    return;
+                }
+
+                if (authMode === 'bigquery' && (!projectId.trim() || !serviceAccountKey)) {
+                    alert('Please provide both Project ID and Service Account Key for BigQuery connection');
+                    return;
+                }
+
+                setLoading(true);
+
+                try {
+                    if (authMode === 'mock') {
+                        // Use mock data
+                        setBigQuerySchema(mockBigQuerySchema);
+                        setJsonSchema(convertToJsonSchema(mockBigQuerySchema, tableId));
+                    } else {
+                        // Make API call with authentication
+                        const requestBody = {
+                            projectId,
+                            serviceAccountKey: JSON.parse(serviceAccountKey),
+                            datasetId,
+                            tableId
+                        };
+
+                        const response = await fetch(`http://localhost:3001/api/bigquery/schema`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            setBigQuerySchema(data.bigQuerySchema);
+                            setJsonSchema(data.jsonSchema);
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to fetch schema from BigQuery');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error:', err);
+                    alert(`Error: ${err.message}`);
+                    
+                    // Fallback to mock data if there's an error and user wants to continue
+                    if (confirm('Would you like to use mock data instead?')) {
+                        setBigQuerySchema(mockBigQuerySchema);
+                        setJsonSchema(convertToJsonSchema(mockBigQuerySchema, tableId));
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const copyToClipboard = (text, type = 'Content') => {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(`${type} copied to clipboard!`);
+                });
+            };
+
+            const downloadSchema = (schema, filename) => {
+                const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            // Convert JSON Schema field to Blind field definition
+            const convertJsonSchemaFieldToBlind = (fieldName, fieldDef) => {
+                let blindType = 'string'; // default
+                
+                if (fieldDef.type) {
+                    switch (fieldDef.type) {
+                        case 'string':
+                            blindType = 'string';
+                            break;
+                        case 'integer':
+                        case 'number':
+                            blindType = 'integer';
+                            break;
+                        case 'boolean':
+                            blindType = 'string'; // Blind doesn't have boolean, use string
+                            break;
+                        case 'array':
+                            blindType = 'string'; // Arrays stored as strings in Blind
+                            break;
+                        default:
+                            blindType = 'string';
+                    }
+                }
+                
+                return `${fieldName}:${blindType}`;
+            };
+
+            const handleBlindSubmit = async (e) => {
+                e.preventDefault();
+                
+                if (!jsonSchema || !jsonSchema.properties) {
+                    alert('No JSON schema available to convert');
+                    return;
+                }
+
+                setBlindLoading(true);
+
+                try {
+                    // Convert JSON Schema properties to Blind field definitions
+                    const blindFields = Object.entries(jsonSchema.properties).map(([fieldName, fieldDef]) => {
+                        return convertJsonSchemaFieldToBlind(fieldName, fieldDef);
+                    });
+
+                    const blindRequest = {
+                        organization: blindOrganization,
+                        createNewDataset: blindCreateDataset,
+                        datasetName: blindDatasetName,
+                        datasetSlug: blindDatasetSlug,
+                        schemaName: blindSchemaName,
+                        schemaSlug: blindSchemaSlug,
+                        fields: blindFields,
+                        projectId: authMode === 'bigquery' ? projectId : 'bigquery-public-data',
+                        serviceAccountKey: authMode === 'bigquery' ? JSON.parse(serviceAccountKey) : null,
+                        datasetId: datasetId,
+                        tableId: tableId
+                    };
+
+                    console.log('Sending Blind request:', blindRequest);
+
+                    const response = await fetch('http://localhost:3001/api/blind/create-schema', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(blindRequest)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to create Blind schema');
+                    }
+
+                    const result = await response.json();
+                    
+                    // Create detailed success message
+                    let message = result.message;
+                    if (result.recordsImported > 0) {
+                        message += `\n\n📊 Data Import: ${result.recordsImported} records successfully imported`;
+                    } else if (result.dataImportError) {
+                        message += `\n\n❌ Data Import Error: ${result.dataImportError}`;
+                    } else {
+                        message += `\n\n⚠️ Data Import: No records imported`;
+                    }
+                    
+                    message += `\n\nDataset: ${result.dataset}\nSchema: ${result.schema}\nFields: ${blindFields.join(', ')}`;
+                    
+                    alert(`✅ ${message}`);
+                    
+                } catch (error) {
+                    console.error('Blind integration error:', error);
+                    alert(`❌ Error creating Blind schema: ${error.message}`);
+                } finally {
+                    setBlindLoading(false);
+                }
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        setServiceAccountKey(e.target.result);
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            return (
+                <div className="app">
+                    <header className="header">
+                        <img src="horizontal-light.svg" alt="Blind Insight" className="logo" />
+                        <h1>BigQuery to Blind Insight</h1>
+                        <p>Seamlessly import your BigQuery data into Blind Insight for advanced privacy-preserving analytics</p>
+                    </header>
+
+                    <main className="main">
+                        {/* Info Box */}
+                        <div className="converter-form" style={{marginBottom: '1rem', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid rgba(63, 38, 143, 0.2)'}}>
+                            <h2 style={{color: 'rgba(47, 24, 123, 1)'}}>🚀 Complete Data Import Pipeline</h2>
+                            <div style={{marginBottom: '1rem'}}>
+                                <p style={{color: 'rgba(57, 56, 57, 1)'}}><strong>What this app does:</strong></p>
+                                <ol style={{marginLeft: '1.5rem', marginTop: '0.5rem', color: 'rgba(57, 56, 57, 1)'}}>
+                                    <li>Extract schema from your BigQuery table</li>
+                                    <li>Convert to JSON Schema format</li>
+                                    <li>Create Blind Insight schema</li>
+                                    <li><strong>Import actual data</strong> from BigQuery to Blind (up to 100 rows)</li>
+                                </ol>
+                            </div>
+                            <div style={{backgroundColor: 'rgba(248, 248, 248, 1)', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', color: 'rgba(57, 56, 57, 1)', border: '1px solid rgba(232, 232, 232, 1)'}}>
+                                <strong style={{color: 'rgba(47, 24, 123, 1)'}}>💡 To import real data:</strong> Use "Real BigQuery Connection" mode and upload your service account JSON file. 
+                                The app will query your BigQuery table and import the data into Blind Insight for encrypted search.
+                            </div>
+                        </div>
+
+                        <div className="converter-form">
+                            <h2>Step 1: Extract BigQuery Schema</h2>
+                            <form onSubmit={handleSubmit}>
+                                <div className="form-group">
+                                    <label htmlFor="authMode">Authentication Mode:</label>
+                                    <select
+                                        id="authMode"
+                                        value={authMode}
+                                        onChange={(e) => setAuthMode(e.target.value)}
+                                        disabled={loading}
+                                    >
+                                        <option value="mock">Mock Data (Demo)</option>
+                                        <option value="bigquery">Real BigQuery Connection</option>
+                                    </select>
+                                </div>
+
+                                {authMode === 'bigquery' && (
+                                    <>
+                                        <div className="form-group">
+                                            <label htmlFor="projectId">Google Cloud Project ID:</label>
+                                            <input
+                                                type="text"
+                                                id="projectId"
+                                                value={projectId}
+                                                onChange={(e) => setProjectId(e.target.value)}
+                                                placeholder="e.g., my-project-123"
+                                                disabled={loading}
+                                                required={authMode === 'bigquery'}
+                                            />
+                                            <div className="field-hint">
+                                                Enter your Google Cloud Project ID (found in GCP Console)
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="form-group">
+                                            <label htmlFor="serviceAccountKey">Service Account Key (JSON):</label>
+                                            <input
+                                                type="file"
+                                                id="serviceAccountKey"
+                                                accept=".json"
+                                                onChange={handleFileUpload}
+                                                disabled={loading}
+                                                required={authMode === 'bigquery' && !serviceAccountKey}
+                                            />
+                                            {serviceAccountKey && (
+                                                <div className="file-info">
+                                                    ✅ Service account key loaded
+                                                </div>
+                                            )}
+                                            <div className="field-hint">
+                                                Upload the JSON key file downloaded from Google Cloud Console
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                
+                                <div className="form-group">
+                                    <label htmlFor="datasetId">Dataset ID:</label>
+                                    <input
+                                        type="text"
+                                        id="datasetId"
+                                        value={datasetId}
+                                        onChange={(e) => setDatasetId(e.target.value)}
+                                        placeholder={authMode === 'mock' ? "Enter BigQuery dataset ID (try: sample-dataset)" : "e.g., my_dataset"}
+                                        disabled={loading}
+                                        required
+                                    />
+                                    {authMode === 'bigquery' && (
+                                        <div className="field-hint">
+                                            Enter just the dataset name (not the full project.dataset format)
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label htmlFor="tableId">Table ID:</label>
+                                    <input
+                                        type="text"
+                                        id="tableId"
+                                        value={tableId}
+                                        onChange={(e) => setTableId(e.target.value)}
+                                        placeholder={authMode === 'mock' ? "Enter BigQuery table ID (try: users)" : "e.g., my_table"}
+                                        disabled={loading}
+                                        required
+                                    />
+                                    {authMode === 'bigquery' && (
+                                        <div className="field-hint">
+                                            Enter just the table name (not the full project.dataset.table format)
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <button type="submit" disabled={loading}>
+                                    {loading ? 'Converting...' : 'Convert Schema'}
+                                </button>
+                            </form>
+                        </div>
+
+                        {jsonSchema && (
+                            <div className="results-section">
+                                <div className="tab-container">
+                                    <div className="tab-header">
+                                        <button 
+                                            className={`tab ${activeTab === 'json' ? 'active' : ''}`}
+                                            onClick={() => setActiveTab('json')}
+                                        >
+                                            JSON Schema
+                                        </button>
+                                        <button 
+                                            className={`tab ${activeTab === 'bigquery' ? 'active' : ''}`}
+                                            onClick={() => setActiveTab('bigquery')}
+                                        >
+                                            BigQuery Schema
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="tab-content">
+                                        {activeTab === 'json' && (
+                                            <div className="schema-display">
+                                                <div className="schema-header">
+                                                    <h3>JSON Schema</h3>
+                                                    <div className="action-buttons">
+                                                        <button 
+                                                            className="copy-button"
+                                                            onClick={() => copyToClipboard(JSON.stringify(jsonSchema, null, 2), 'JSON Schema')}
+                                                        >
+                                                            📋 Copy
+                                                        </button>
+                                                        <button 
+                                                            className="download-button"
+                                                            onClick={() => downloadSchema(jsonSchema, `${tableId}_schema.json`)}
+                                                        >
+                                                            💾 Download
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <pre>{JSON.stringify(jsonSchema, null, 2)}</pre>
+                                            </div>
+                                        )}
+                                        
+                                        {activeTab === 'bigquery' && (
+                                            <div className="schema-display">
+                                                <div className="schema-header">
+                                                    <h3>BigQuery Schema</h3>
+                                                    <div className="action-buttons">
+                                                        <button 
+                                                            className="copy-button"
+                                                            onClick={() => copyToClipboard(JSON.stringify(bigQuerySchema, null, 2), 'BigQuery Schema')}
+                                                        >
+                                                            📋 Copy
+                                                        </button>
+                                                        <button 
+                                                            className="download-button"
+                                                            onClick={() => downloadSchema(bigQuerySchema, `${tableId}_bigquery_schema.json`)}
+                                                        >
+                                                            💾 Download
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <pre>{JSON.stringify(bigQuerySchema, null, 2)}</pre>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Blind Insight Integration Section */}
+                        {jsonSchema && (
+                            <div className="blind-integration-section">
+                                <h2>🔐 Step 2: Import Data to Blind Insight</h2>
+                                <p>Create a Blind Insight schema from your JSON Schema and import the actual BigQuery data for encrypted storage and search.</p>
+                                
+                                <form onSubmit={handleBlindSubmit}>
+                                    <div className="form-group">
+                                        <label htmlFor="blindOrganization">Organization Slug:</label>
+                                        <input
+                                            type="text"
+                                            id="blindOrganization"
+                                            value={blindOrganization}
+                                            onChange={(e) => setBlindOrganization(e.target.value)}
+                                            placeholder="e.g., blind-insight-demo"
+                                            disabled={blindLoading}
+                                            required
+                                        />
+                                        <small>Your Blind Insight organization slug</small>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={blindCreateDataset}
+                                                onChange={(e) => setBlindCreateDataset(e.target.checked)}
+                                                disabled={blindLoading}
+                                            />
+                                            Create new dataset
+                                        </label>
+                                    </div>
+
+                                    {blindCreateDataset ? (
+                                        <>
+                                            <div className="form-group">
+                                                <label htmlFor="blindDatasetName">Dataset Name:</label>
+                                                <input
+                                                    type="text"
+                                                    id="blindDatasetName"
+                                                    value={blindDatasetName}
+                                                    onChange={(e) => {
+                                                        setBlindDatasetName(e.target.value);
+                                                        setBlindDatasetSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                                                    }}
+                                                    placeholder="e.g., BigQuery Tables"
+                                                    disabled={blindLoading}
+                                                    required={blindCreateDataset}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label htmlFor="blindDatasetSlug">Dataset Slug:</label>
+                                                <input
+                                                    type="text"
+                                                    id="blindDatasetSlug"
+                                                    value={blindDatasetSlug}
+                                                    onChange={(e) => setBlindDatasetSlug(e.target.value)}
+                                                    placeholder="e.g., bigquery-tables"
+                                                    disabled={blindLoading}
+                                                    required={blindCreateDataset}
+                                                />
+                                                <small>URL-safe identifier for the dataset</small>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="form-group">
+                                            <label htmlFor="blindDatasetSlug">Existing Dataset Slug:</label>
+                                            <input
+                                                type="text"
+                                                id="blindDatasetSlug"
+                                                value={blindDatasetSlug}
+                                                onChange={(e) => setBlindDatasetSlug(e.target.value)}
+                                                placeholder="e.g., people"
+                                                disabled={blindLoading}
+                                                required={!blindCreateDataset}
+                                            />
+                                            <small>Slug of existing dataset to add schema to</small>
+                                        </div>
+                                    )}
+
+                                    <div className="form-group">
+                                        <label htmlFor="blindSchemaName">Schema Name:</label>
+                                        <input
+                                            type="text"
+                                            id="blindSchemaName"
+                                            value={blindSchemaName}
+                                            onChange={(e) => {
+                                                setBlindSchemaName(e.target.value);
+                                                setBlindSchemaSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                                            }}
+                                            placeholder={`e.g., ${tableId} Schema`}
+                                            disabled={blindLoading}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="blindSchemaSlug">Schema Slug:</label>
+                                        <input
+                                            type="text"
+                                            id="blindSchemaSlug"
+                                            value={blindSchemaSlug}
+                                            onChange={(e) => setBlindSchemaSlug(e.target.value)}
+                                            placeholder={`e.g., ${tableId.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                                            disabled={blindLoading}
+                                            required
+                                        />
+                                        <small>URL-safe identifier for the schema</small>
+                                    </div>
+
+                                    <button type="submit" disabled={blindLoading}>
+                                        {blindLoading ? '🔄 Creating Schema...' : '🚀 Create Blind Schema'}
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html> 
