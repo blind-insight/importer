@@ -840,6 +840,193 @@ app.get('/api/blind/status', async (req, res) => {
   }
 });
 
+// New endpoint to query data from Blind Insight for Jupyter/ML use cases
+// Supports encrypted search, filtering, and aggregations
+app.post('/api/blind/query', async (req, res) => {
+  const { spawn } = require('child_process');
+  
+  try {
+    const { 
+      organization, 
+      datasetSlug, 
+      schemaSlug,
+      limit = 1000,
+      offset = 0,
+      filters = [],  // Array of filter strings like ["age:>40", "name:John"]
+      decrypt = false  // Only decrypt when explicitly requested (for ML use)
+    } = req.body;
+
+    // Validate required fields
+    if (!organization || !datasetSlug || !schemaSlug) {
+      return res.status(400).json({
+        error: 'Missing required fields: organization, datasetSlug, schemaSlug'
+      });
+    }
+
+    console.log('📊 Blind Query Request:');
+    console.log(`   Organization: ${organization}`);
+    console.log(`   Dataset: ${datasetSlug}`);
+    console.log(`   Schema: ${schemaSlug}`);
+    console.log(`   Limit: ${limit}, Offset: ${offset}`);
+    console.log(`   Filters: ${filters.length > 0 ? filters.join(', ') : 'none'}`);
+    console.log(`   Decrypt: ${decrypt ? 'yes (for ML use)' : 'no (encrypted search)'}`);
+
+    // Path to the blind executable
+    const blindPath = path.join(process.cwd(), '../../blind/blind');
+    
+    // Function to execute blind command
+    const executeBlindCommand = (args) => {
+      return new Promise((resolve, reject) => {
+        console.log(`🚀 Executing: ${blindPath} ${args.join(' ')}`);
+        
+        const blindProcess = spawn(blindPath, args, {
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        blindProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        blindProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        blindProcess.on('close', (code) => {
+          console.log(`📋 Command output (code ${code}):`);
+          console.log(`   stdout: ${stdout.substring(0, 500)}`);
+          console.log(`   stderr: ${stderr}`);
+          
+          if (code === 0) {
+            resolve({ stdout, stderr });
+          } else {
+            // Parse error message from stderr or stdout
+            const errorMsg = stderr || stdout;
+            // Check for common error patterns
+            if (errorMsg.includes('404') || errorMsg.includes('Not Found')) {
+              reject(new Error(`Dataset, schema, or organization not found: ${errorMsg}`));
+            } else if (errorMsg.includes('400') || errorMsg.includes('Bad Request')) {
+              reject(new Error(`Invalid request: ${errorMsg}`));
+            } else {
+              reject(new Error(`Blind command failed with code ${code}: ${errorMsg}`));
+            }
+          }
+        });
+
+        blindProcess.on('error', (error) => {
+          reject(new Error(`Failed to execute blind command: ${error.message}`));
+        });
+      });
+    };
+
+    // Query records from Blind Insight using encrypted search
+    // Blind Insight supports encrypted queries: =, <, >, min, max, count, avg, sum
+    // Only decrypt when explicitly requested (for ML operations that need plaintext)
+    const queryArgs = [
+      'record', 'list',
+      '--organization=' + organization,
+      '--dataset=' + datasetSlug,
+      '--schema=' + schemaSlug,
+      '--limit=' + String(limit),
+      '--offset=' + String(offset)
+    ];
+    
+    // Add encrypted filters if provided
+    if (filters && filters.length > 0) {
+      filters.forEach(filter => {
+        queryArgs.push('--filter', filter);
+      });
+    }
+    
+    // Only decrypt if explicitly requested (for ML use cases)
+    if (decrypt) {
+      queryArgs.push('--decrypt');
+      console.log('   ⚠️  Decryption enabled - data will be decrypted for ML use');
+    } else {
+      console.log('   🔒 Using encrypted search - data remains encrypted');
+    }
+
+    const queryResult = await executeBlindCommand(queryArgs);
+    
+    // Parse the JSON response
+    let records = [];
+    try {
+      const resultData = JSON.parse(queryResult.stdout);
+      // Handle different possible response formats
+      if (Array.isArray(resultData)) {
+        records = resultData;
+      } else if (resultData.records) {
+        records = resultData.records;
+      } else if (resultData.data) {
+        records = resultData.data;
+      } else {
+        records = [resultData];
+      }
+      
+      // Extract data from Blind format (records may be wrapped in "data" objects)
+      records = records.map(record => {
+        if (record.data) {
+          return record.data;
+        }
+        return record;
+      });
+      
+      console.log(`✅ Successfully queried ${records.length} records from Blind Insight`);
+      
+      res.json({
+        success: true,
+        count: records.length,
+        records: records,
+        organization,
+        dataset: datasetSlug,
+        schema: schemaSlug,
+        encrypted: !decrypt,  // Indicate if data is still encrypted
+        filters: filters || [],
+        note: decrypt 
+          ? 'Data has been decrypted for ML use' 
+          : 'Data is encrypted - use encrypted search/filter capabilities'
+      });
+    } catch (parseError) {
+      // If JSON parsing fails, try to extract data from text output
+      console.log(`⚠️ JSON parsing failed, attempting text extraction: ${parseError.message}`);
+      
+      // Fallback: return raw output and let client handle it
+      res.json({
+        success: true,
+        count: 0,
+        records: [],
+        rawOutput: queryResult.stdout,
+        warning: 'Could not parse JSON response, returning raw output',
+        organization,
+        dataset: datasetSlug,
+        schema: schemaSlug
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Blind Query Error:', error);
+    
+    // Determine appropriate HTTP status code based on error message
+    let statusCode = 500;
+    if (error.message.includes('not found') || error.message.includes('Not Found') || error.message.includes('404')) {
+      statusCode = 404;
+    } else if (error.message.includes('Bad Request') || error.message.includes('400') || error.message.includes('Invalid')) {
+      statusCode = 400;
+    } else if (error.message.includes('authentication') || error.message.includes('login')) {
+      statusCode = 401;
+    }
+    
+    return res.status(statusCode).json({ 
+      success: false,
+      error: error.message,
+      details: 'Failed to query data from Blind Insight',
+      suggestion: 'Check that the dataset, schema, and organization are correct. Ensure you are authenticated with Blind Insight.'
+    });
+  }
+});
+
 // Serve the HTML interface from parent directory
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
