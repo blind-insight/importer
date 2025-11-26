@@ -989,19 +989,20 @@ app.post('/api/blind/query', async (req, res) => {
           : 'Data is encrypted - use encrypted search/filter capabilities'
       });
     } catch (parseError) {
-      // If JSON parsing fails, try to extract data from text output
-      console.log(`⚠️ JSON parsing failed, attempting text extraction: ${parseError.message}`);
+      // If JSON parsing fails, this is a failure condition
+      console.error(`❌ JSON parsing failed: ${parseError.message}`);
+      console.error(`   Raw output: ${queryResult.stdout.substring(0, 500)}`);
       
-      // Fallback: return raw output and let client handle it
-      res.json({
-        success: true,
-        count: 0,
-        records: [],
-        rawOutput: queryResult.stdout,
-        warning: 'Could not parse JSON response, returning raw output',
+      // Return failure status to accurately reflect the error
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to parse response from Blind Proxy',
+        details: parseError.message,
+        rawOutput: queryResult.stdout.substring(0, 1000),  // Limit size for response
         organization,
         dataset: datasetSlug,
-        schema: schemaSlug
+        schema: schemaSlug,
+        suggestion: 'The Blind Proxy may have returned an unexpected format. Check the raw output for details.'
       });
     }
 
