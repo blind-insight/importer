@@ -28,10 +28,23 @@ Blind Insight (encrypted data)
 
 ### 1. Install Python Dependencies
 
+**Option A: Using a Virtual Environment (Recommended)**
+
 ```bash
 cd jupyter-integration
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+**Option B: Install System-Wide (macOS)**
+
+```bash
+cd jupyter-integration
+pip3 install -r requirements.txt
+```
+
+**Note**: On macOS, you may need to use `pip3` instead of `pip`. If you get "command not found", try `pip3`.
 
 ### 2. Start the Backend API
 

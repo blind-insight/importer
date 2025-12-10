@@ -88,6 +88,43 @@ class BlindInsightClient:
         response.raise_for_status()
         
         return response.json()
+
+    def aggregate(
+        self,
+        organization: str,
+        dataset_slug: str,
+        schema_slug: str,
+        agg_filter: str,
+        extra_filters: Optional[List[str]] = None,
+        decrypt: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Run an aggregation query on encrypted data.
+
+        Args:
+            organization: Blind Insight organization slug
+            dataset_slug: Dataset slug
+            schema_slug: Schema slug
+            agg_filter: Aggregation expression, e.g. "sepal-length:avg(0~10)" or "petal-width:count(<1.0)"
+            extra_filters: Optional list of additional filters (e.g., ["species:I. setosa"])
+            decrypt: Should remain False for encrypted aggregation; set True only if you explicitly need plaintext.
+
+        Returns:
+            Dictionary containing aggregation result. The aggregation value is typically in records[0]["data"]["value"].
+        """
+        filters = extra_filters or []
+        filters = filters + [agg_filter]
+
+        result = self.query(
+            organization=organization,
+            dataset_slug=dataset_slug,
+            schema_slug=schema_slug,
+            limit=1,
+            offset=0,
+            filters=filters,
+            decrypt=decrypt
+        )
+        return result
     
     def to_dataframe(
         self,
