@@ -258,18 +258,17 @@ def load_iris_from_blind(
     # - sepal_length, sepal_width, petal_length, petal_width (features) - with underscore or hyphen
     # - species or target (label)
     
-    # Try to find feature columns (handle both underscore and hyphen formats)
+    # Try to find feature columns (handle both underscore and hyphen formats, union them)
     feature_cols = []
-    # Try underscore format first
-    for col in ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']:
-        if col in df.columns:
-            feature_cols.append(col)
+    underscore_cols = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']
+    hyphen_cols = ['sepal-length', 'sepal-width', 'petal-length', 'petal-width']
     
-    # If not found, try hyphen format
-    if not feature_cols:
-        for col in ['sepal-length', 'sepal-width', 'petal-length', 'petal-width']:
-            if col in df.columns:
-                feature_cols.append(col)
+    for col in underscore_cols:
+        if col in df.columns and col not in feature_cols:
+            feature_cols.append(col)
+    for col in hyphen_cols:
+        if col in df.columns and col not in feature_cols:
+            feature_cols.append(col)
     
     if not feature_cols:
         # If standard names not found, use all numeric columns except target

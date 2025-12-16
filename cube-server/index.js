@@ -856,6 +856,10 @@ app.post('/api/blind/query', async (req, res) => {
       decrypt = false  // Only decrypt when explicitly requested (for ML use)
     } = req.body;
 
+    // Sanitize numeric inputs (null/undefined/NaN fallback to defaults)
+    const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 1000;
+    const parsedOffset = Number.isFinite(Number(offset)) ? Number(offset) : 0;
+
     // Validate required fields
     if (!organization || !datasetSlug || !schemaSlug) {
       return res.status(400).json({
@@ -867,7 +871,7 @@ app.post('/api/blind/query', async (req, res) => {
     console.log(`   Organization: ${organization}`);
     console.log(`   Dataset: ${datasetSlug}`);
     console.log(`   Schema: ${schemaSlug}`);
-    console.log(`   Limit: ${limit}, Offset: ${offset}`);
+    console.log(`   Limit: ${parsedLimit}, Offset: ${parsedOffset}`);
     console.log(`   Filters: ${filters.length > 0 ? filters.join(', ') : 'none'}`);
     console.log(`   Decrypt: ${decrypt ? 'yes (for ML use)' : 'no (encrypted search)'}`);
 
@@ -929,8 +933,8 @@ app.post('/api/blind/query', async (req, res) => {
       '--organization=' + organization,
       '--dataset=' + datasetSlug,
       '--schema=' + schemaSlug,
-      '--limit=' + String(limit),
-      '--offset=' + String(offset)
+      '--limit=' + String(parsedLimit),
+      '--offset=' + String(parsedOffset)
     ];
     
     // Add encrypted filters if provided
