@@ -81,7 +81,13 @@ You'll need these values in your notebook.
 
 1. Open the example notebook:
    ```bash
+   # From the repo root:
+   cd jupyter-integration
+   # Option A (activate venv):
+   source venv/bin/activate
    jupyter notebook Iris_Classification_Example.ipynb
+   # Option B (without activating venv):
+   ./venv/bin/jupyter notebook Iris_Classification_Example.ipynb
    ```
 
 2. Update the configuration in the notebook:
