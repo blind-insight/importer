@@ -66,14 +66,199 @@ Make sure you're authenticated with Blind Insight:
 ../blind/blind organization list
 ```
 
-### 4. Upload Your Data to Blind Insight
+### 4. Prepare Your Dataset
 
-Use the main importer tool to upload your dataset (e.g., Iris dataset) to Blind Insight. Note the:
-- Organization slug
-- Dataset slug
-- Schema slug
+You need to upload your dataset to Blind Insight before using it in the notebooks. See the [Dataset Setup](#dataset-setup) section below for detailed instructions.
 
-You'll need these values in your notebook.
+## Dataset Setup
+
+### Financial Fraud Dataset for `fraud_analysis.ipynb`
+
+The `fraud_analysis.ipynb` notebook requires a financial fraud dataset with the following schema:
+
+**Required Fields:**
+- `transaction_id` (string) - Unique transaction identifier
+- `user_id` (string) - User identifier
+- `amount` (number) - Transaction amount (will be scaled to cents, e.g., 63.99 → 6399)
+- `hour` (integer) - Hour of day (0-23)
+- `country` (string) - Country code (e.g., "US", "FR", "UK")
+- `transaction_type` (string) - Type of transaction (e.g., "ATM", "Online", "POS", "QR")
+- `merchant_category` (string) - Category (e.g., "Food", "Travel", "Electronics")
+- `device_risk_score` (integer) - Device risk score (0-100)
+- `ip_risk_score` (integer) - IP risk score (0-100)
+- `is_fraud` (integer) - Binary label (0 = not fraud, 1 = fraud)
+
+#### Option 1: Upload Using the Blind CLI (Recommended)
+
+If you have a fraud dataset ready:
+
+1. **Create the dataset in Blind Insight:**
+   ```bash
+   blind dataset create --organization demo --name FraudAnalysis
+   ```
+
+2. **Create the schema:**
+   Create a JSON schema file (e.g., `fraud_schema.json`) with the following structure:
+   ```json
+   {
+     "type": "object",
+     "properties": {
+       "transaction_id": {"type": "string"},
+       "user_id": {"type": "string"},
+       "amount": {"type": "number", "minimum": 0},
+       "hour": {"type": "integer", "minimum": 0, "maximum": 23},
+       "country": {"type": "string"},
+       "transaction_type": {"type": "string"},
+       "merchant_category": {"type": "string"},
+       "device_risk_score": {"type": "integer", "minimum": 0, "maximum": 100},
+       "ip_risk_score": {"type": "integer", "minimum": 0, "maximum": 100},
+       "is_fraud": {"type": "integer", "enum": [0, 1]}
+     }
+   }
+   ```
+   
+   Then create the schema:
+   ```bash
+   blind schema create --organization demo --dataset FraudAnalysis --name FraudAnalysis --file fraud_schema.json
+   ```
+
+3. **Upload the data:**
+   Prepare your data as a JSON array of records:
+   ```json
+   [
+     {
+       "transaction_id": "txn_001",
+       "user_id": "user_123",
+       "amount": 63.99,
+       "hour": 14,
+       "country": "US",
+       "transaction_type": "Online",
+       "merchant_category": "Food",
+       "device_risk_score": 25,
+       "ip_risk_score": 30,
+       "is_fraud": 0
+     },
+     ...
+   ]
+   ```
+   
+   Upload using:
+   ```bash
+   blind record create --organization demo --dataset FraudAnalysis --schema FraudAnalysis --file fraud_data.json
+   ```
+
+#### Option 2: Use Demo Datasets
+
+Demo datasets are available in the `demo-datasets` directory at the project root:
+
+1. **Navigate to demo-datasets:**
+   ```bash
+   cd ../demo-datasets
+   ```
+
+2. **Follow the demo-datasets README:**
+   See [`../demo-datasets/README.md`](../demo-datasets/README.md) for instructions on:
+   - Available datasets
+   - How to create datasets using the `blind` CLI
+   - How to generate synthetic data using the `generate` script
+
+3. **Download pre-built datasets:**
+   Check the [demo-datasets releases](https://github.com/blind-insight/demo-datasets/releases) for pre-built dataset files.
+
+#### Option 3: Use the Importer Tool (BigQuery/Other Sources)
+
+If your fraud data is in BigQuery or another data source:
+
+1. **Navigate to the importer directory:**
+   ```bash
+   cd ..
+   ```
+
+2. **Follow the importer README:**
+   See [`../README.md`](../README.md) for instructions on:
+   - Extracting schemas from BigQuery
+   - Converting schemas to JSON Schema format
+   - Importing data into Blind Insight
+
+3. **Use the web UI:**
+   - Start the backend: `cd cube-server && node index.js`
+   - Start the frontend: `python3 -m http.server 3000`
+   - Open http://localhost:3000
+   - Follow the UI to import your BigQuery table
+
+#### Option 4: Create Synthetic Fraud Data
+
+You can create synthetic fraud data for testing:
+
+1. **Generate data using Python:**
+   ```python
+   import json
+   import random
+   from faker import Faker
+   
+   fake = Faker()
+   
+   countries = ["US", "UK", "FR", "DE", "TR", "NG"]
+   transaction_types = ["ATM", "Online", "POS", "QR"]
+   merchant_categories = ["Food", "Travel", "Electronics", "Clothing", "Grocery"]
+   
+   records = []
+   for i in range(10000):
+       is_fraud = random.choices([0, 1], weights=[95, 5])[0]  # ~5% fraud rate
+       records.append({
+           "transaction_id": f"txn_{i:06d}",
+           "user_id": f"user_{random.randint(1, 1000):04d}",
+           "amount": round(random.uniform(10, 5000), 2),
+           "hour": random.randint(0, 23),
+           "country": random.choice(countries),
+           "transaction_type": random.choice(transaction_types),
+           "merchant_category": random.choice(merchant_categories),
+           "device_risk_score": random.randint(0, 100),
+           "ip_risk_score": random.randint(0, 100),
+           "is_fraud": is_fraud
+       })
+   
+   with open("fraud_data.json", "w") as f:
+       json.dump(records, f, indent=2)
+   ```
+
+2. **Upload the generated data:**
+   ```bash
+   blind record create --organization demo --dataset FraudAnalysis --schema FraudAnalysis --file fraud_data.json
+   ```
+
+### Verify Dataset Configuration
+
+After uploading, verify your dataset is accessible:
+
+```bash
+# List datasets
+blind dataset list --organization demo
+
+# List schemas in a dataset
+blind schema list --organization demo --dataset FraudAnalysis
+
+# Check record count (if supported)
+# You can verify in the Blind Insight UI or by querying through the notebook
+```
+
+### Update Notebook Configuration
+
+Once your dataset is uploaded, update the configuration in `fraud_analysis.ipynb`:
+
+```python
+ORGANIZATION = "demo"  # Your organization slug
+DATASET_SLUG = "FraudAnalysis"  # Your dataset slug
+SCHEMA_SLUG = "FraudAnalysis"  # Your schema slug
+SCHEMA_ID = "your-schema-id"  # Optional: Get from schema details if needed
+```
+
+### Further Reading
+
+- **Blind Insight Documentation:** [Getting Started Guide](https://docs.blindinsight.io/getting-started/)
+- **Blind Proxy CLI:** [CLI Documentation](https://docs.blindinsight.io/)
+- **Demo Datasets:** See [`../demo-datasets/README.md`](../demo-datasets/README.md)
+- **Importer Tool:** See [`../README.md`](../README.md)
 
 ## Usage
 
@@ -176,7 +361,8 @@ X, y = load_iris_from_blind(organization, dataset_slug, schema_slug)
 ## Files
 
 - `blind_insight_client.py` - Python client library for querying Blind Insight
-- `Iris_Classification_Example.ipynb` - Example Jupyter notebook with ML workflow
+- `Iris_Classification_Example.ipynb` - Example Jupyter notebook with Iris classification
+- `fraud_analysis.ipynb` - Financial fraud detection notebook (see [Dataset Setup](#dataset-setup) for dataset requirements)
 - `requirements.txt` - Python dependencies
 - `README.md` - This file
 
